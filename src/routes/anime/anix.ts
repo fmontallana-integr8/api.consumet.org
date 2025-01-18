@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply, FastifyInstance, RegisterOptions } from 'fastify';
-import { ANIME } from '@consumet/extensions';
+import { ANIME, StreamingServers } from '@consumet/extensions';
 
 const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
   const anix = new ANIME.Anix();
@@ -61,9 +61,16 @@ const routes = async (fastify: FastifyInstance, options: RegisterOptions) => {
     async (request: FastifyRequest, reply: FastifyReply) => {
       const { id, episodeId } = request.params as { id: string; episodeId: string };
       const { server } = request.query as { server?: string };
-  
+      const isValidServer = (server: string | undefined): server is StreamingServers => {
+        return server === undefined || Object.values(StreamingServers).includes(server as StreamingServers);
+      };
+      
       try {
-        const res = await anix.fetchEpisodeSources(id, episodeId, server);
+        if (!isValidServer(server)) {
+          return reply.status(400).send({ message: 'Invalid server parameter' });
+        }
+        
+        const res = await anix.fetchEpisodeSources(id, episodeId, server as StreamingServers);
   
         reply.status(200).send(res);
       } catch (err) {
